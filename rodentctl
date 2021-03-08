@@ -1,0 +1,68 @@
+#!/bin/sh
+
+GIT_URL="https://github.com/ratman00"
+INSTALL_LOC="$HOME/.local/rodent/installed"
+DL_CACHE_LOC="$HOME/.cache/rodent/dl"
+
+mkdir -p "${DL_CACHE_LOC}"
+mkdir -p "${INSTALL_LOC}"
+
+use() {
+    echo "Using rodentctl"
+    [[ $_ != $0 ]] && export PATH="$PATH:${INSTALL_LOC}" || echo "ERROR: Could not add rodentctl to path, because this script is not being sourced. If you want to use rodentctl in the current session, run the rodentctl script like: source rodentctl use"
+}
+
+install() {
+    echo "Installing $1"
+    package_url="${GIT_URL}/$1"
+    package_tmp_loc="${DL_CACHE_LOC}/$(tr -dc A-Za-z0-9 </dev/urandom | head -c 12 ; echo '')/$1"
+    git clone "${package_url}" "${package_tmp_loc}"
+    if [ $? -eq 0 ]; then
+        mkdir -p "${INSTALL_LOC}"
+        cp -rfv "${package_tmp_loc}"/* "${INSTALL_LOC}"
+        echo "Installed $1"
+    else
+        echo "ERROR: Could not clone $1"
+        exit 1
+    fi
+    echo "NOTICE: Installed program was not added to path! If you want to run the program you installed, run: source rodentctl use"
+}
+
+clean() {
+    echo "Cleaning up cache from ${DL_CACHE_LOC}"
+    rm -rv ${DL_CACHE_LOC}
+}
+
+uninstall() {
+    echo "Uninstalling rodentctl"
+    clean
+    echo "Uninstalling all rodentctl programs from ${INSTALL_LOC}"
+    rm -rv ${INSTALL_LOC}
+    echo "rodentctl has been uninstalled, you may restart your shell in order to reset the PATH variable (if you ran rodentctl use)"
+}
+
+usage() {
+    echo "usage: rodentctl [[install | clean | uninstall | use] [arguments]]"
+}
+
+case $1 in
+    install)
+        [ -z "$2" ] && echo "ERROR: No package specified for $1" && usage && exit 1
+        install "$2"
+        break
+        ;;
+    clean)
+        clean
+        break
+        ;;
+    uninstall)
+        uninstall
+        break
+        ;;
+    use)
+        use
+        ;;
+    *)
+        echo "ERROR: Unknown action $1"
+        usage
+esac
